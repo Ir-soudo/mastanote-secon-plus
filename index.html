@@ -204,6 +204,9 @@
                         <div id="user-role-label" class="text-xs text-slate-400 truncate">Enseignant PCT / Math</div>
                     </div>
                 </div>
+                <button onclick="handleRealLogout()" title="Se déconnecter" class="text-slate-400 hover:text-rose-400 flex-shrink-0 ml-2">
+                    <i class="fa-solid fa-right-from-bracket text-lg"></i>
+                </button>
                 <button onclick="toggleMobileMenu()" class="md:hidden text-slate-400 hover:text-white">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
@@ -1835,11 +1838,23 @@
 
             const userName = document.getElementById('user-name');
             const userRoleLabel = document.getElementById('user-role-label');
+            const userAvatar = document.getElementById('user-avatar');
             const adminNavs = document.querySelectorAll('.admin-only');
             const roleLabels = { admin: "Chef d'Établissement", teacher: "Enseignant", student: "Élève", superadmin: "Gestionnaire National" };
 
             if (userName) userName.textContent = profile.full_name || session.user.email;
             if (userRoleLabel) userRoleLabel.textContent = roleLabels[profile.role] || profile.role;
+
+            if (userAvatar) {
+                const nameForInitials = (profile.full_name || session.user.email || '?').trim();
+                const initials = nameForInitials
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((word) => word[0].toUpperCase())
+                    .join('');
+                userAvatar.textContent = initials || '?';
+            }
 
             if (['admin', 'superadmin'].includes(profile.role)) {
                 adminNavs.forEach((el) => el.classList.remove('hidden'));
