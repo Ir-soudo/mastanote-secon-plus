@@ -120,8 +120,8 @@
                     <span class="hidden sm:inline text-slate-300 mr-1.5">Rôle:</span>
                     <select id="role-select" class="bg-transparent text-amber-300 font-semibold focus:outline-none cursor-pointer" onchange="switchRole(this.value)">
                         <option value="admin" class="bg-slate-900 text-white">Admin Établissement</option>
-                        <option value="teacher" class="bg-slate-900 text-white">Enseignant (M. Kpodar)</option>
-                        <option value="student" class="bg-slate-900 text-white">Élève (Ablawa Dossou)</option>
+                        <option value="teacher" class="bg-slate-900 text-white">Enseignant</option>
+                        <option value="student" class="bg-slate-900 text-white">Élève</option>
                         <option value="superadmin" class="bg-slate-900 text-white">Super Administrateur</option>
                     </select>
                 </div>
@@ -204,6 +204,9 @@
                         <div id="user-role-label" class="text-xs text-slate-400 truncate">Enseignant PCT / Math</div>
                     </div>
                 </div>
+                <button onclick="handleRealLogout()" title="Se déconnecter" class="text-slate-400 hover:text-rose-400 flex-shrink-0 ml-2">
+                    <i class="fa-solid fa-right-from-bracket text-lg"></i>
+                </button>
                 <button onclick="toggleMobileMenu()" class="md:hidden text-slate-400 hover:text-white">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
@@ -392,7 +395,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Classe :</label>
-                            <select id="entry-class" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="loadGradeGrid()">
+                            <select id="entry-class" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="window.MASTANOTE_CONFIG.currentClassId = this.value; if (window.loadRealSubjectsForClass) loadRealSubjectsForClass(this.value); loadGradeGrid()">
                                 <option value="3m1">3ème M1 (32 Élèves)</option>
                                 <option value="2c">2nde C (28 Élèves)</option>
                                 <option value="td">Terminale D (25 Élèves)</option>
@@ -401,11 +404,28 @@
 
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Matière :</label>
-                            <select id="entry-subject" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="loadGradeGrid()">
+                            <select id="entry-subject" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="window.MASTANOTE_CONFIG.currentSubjectId = this.value; loadGradeGrid()">
                                 <option value="pct">Sciences Physiques & Chimie (Coef. 3)</option>
                                 <option value="math">Mathématiques (Coef. 4)</option>
                                 <option value="svt">SVT (Coef. 2)</option>
-                                <option value="fr">Français (Coef. 3)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Type d'évaluation :</label>
+                            <select id="entry-eval-type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="loadGradeGrid()">
+                                <option value="interrogation">Interrogation écrite/orale</option>
+                                <option value="travail_pratique">Travail Pratique</option>
+                                <option value="devoir_surveille" selected>Devoir Surveillé</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Trimestre :</label>
+                            <select id="entry-term" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="loadGradeGrid()">
+                                <option value="trimestre_1" selected>1er Trimestre</option>
+                                <option value="trimestre_2">2ème Trimestre</option>
+                                <option value="trimestre_3">3ème Trimestre</option>
                             </select>
                         </div>
 
@@ -459,6 +479,8 @@
                             <button onclick="openVoiceModal()" class="text-purple-600 hover:text-purple-800 font-semibold"><i class="fa-solid fa-microphone mr-1"></i> Saisie Vocale</button>
                             <span>•</span>
                             <button onclick="openScanModal()" class="text-amber-600 hover:text-amber-800 font-semibold"><i class="fa-solid fa-camera mr-1"></i> Scanner une Feuille</button>
+                            <span>•</span>
+                            <button onclick="preparerExportEducMaster(window.MASTANOTE_CONFIG.currentAssessmentId)" class="text-emerald-600 hover:text-emerald-800 font-semibold"><i class="fa-solid fa-file-export mr-1"></i> Exporter EducMaster</button>
                             <span>•</span>
                             <span id="sync-indicator" class="text-emerald-600 font-semibold"><i class="fa-solid fa-cloud-check mr-1"></i> Données synchronisées</span>
                         </div>
@@ -677,8 +699,13 @@
                     </select>
                     <select class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm">
                         <option value="">Tous les niveaux</option>
+                        <option value="6eme">6ème</option>
+                        <option value="5eme">5ème</option>
+                        <option value="4eme">4ème</option>
                         <option value="3eme">3ème (BEPC)</option>
-                        <option value="tle">Terminale (BAC)</option>
+                        <option value="2nde">2nde (A, C, D, Technique)</option>
+                        <option value="1ere">1ère (A, C, D, Technique)</option>
+                        <option value="tle">Terminale (BAC, toutes séries)</option>
                     </select>
                     <button class="bg-slate-900 text-white font-semibold text-sm rounded-xl px-4 py-2 hover:bg-slate-800 transition">Filtrer</button>
                 </div>
@@ -776,6 +803,10 @@
                         </button>
                     </div>
                 </div>
+                <p class="text-center text-sm text-slate-500">
+                    <i class="fa-solid fa-phone mr-1.5"></i> Une question sur votre abonnement ? Contactez-nous au
+                    <a href="tel:+2290166283566" class="font-semibold text-slate-700 hover:text-blue-600">+229 01 66 28 35 66</a>
+                </p>
             </section>
 
             <!-- ========================================== -->
@@ -1773,6 +1804,382 @@
             triggerToast('Moteur MastaNote : Recalcul des moyennes générales effectué', 'success');
         }
 
+        /* ==================================================== */
+        /* RÉFÉRENTIEL MESTFP — MATIÈRES & SÉRIES (ESG + ESTFP)   */
+        /* ==================================================== */
+        const REFERENTIEL_MESTFP = {
+            ESG: {
+                premier_cycle: {
+                    niveaux: ["6eme", "5eme", "4eme", "3eme"],
+                    matieres_communes: [
+                        { code: "FR", nom: "Français", coefficient_defaut: 4 },
+                        { code: "MATH", nom: "Mathématiques", coefficient_defaut: 4 },
+                        { code: "ANG", nom: "Anglais", coefficient_defaut: 2 },
+                        { code: "PCT", nom: "Physique-Chimie-Technologie", coefficient_defaut: 2 },
+                        { code: "SVT", nom: "Sciences de la Vie et de la Terre", coefficient_defaut: 2 },
+                        { code: "HG", nom: "Histoire-Géographie", coefficient_defaut: 2 },
+                        { code: "ECM", nom: "Éducation Civique et Morale", coefficient_defaut: 1 },
+                        { code: "EPS", nom: "Éducation Physique et Sportive", coefficient_defaut: 1 },
+                        { code: "TICE", nom: "Informatique / TICE", coefficient_defaut: 1 },
+                        { code: "ART", nom: "Éducation Artistique (Arts plastiques / Musique)", coefficient_defaut: 1 },
+                    ],
+                    matieres_a_partir_de_4eme: [
+                        { code: "LV2_DE", nom: "Allemand (LV2)", coefficient_defaut: 2 },
+                        { code: "LV2_ES", nom: "Espagnol (LV2)", coefficient_defaut: 2 },
+                    ],
+                },
+                second_cycle: {
+                    niveaux: ["2nde", "1ere", "tle"],
+                    matieres_communes: [
+                        { code: "ANG", nom: "Anglais", coefficient_defaut: 2 },
+                        { code: "HG", nom: "Histoire-Géographie", coefficient_defaut: 2 },
+                        { code: "EPS", nom: "Éducation Physique et Sportive", coefficient_defaut: 1 },
+                        { code: "PHILO", nom: "Philosophie", coefficient_defaut: 2, niveaux: ["1ere", "tle"] },
+                    ],
+                    series: {
+                        A1: {
+                            nom: "Littéraire (LV2 / Latin dominant)",
+                            matieres: [
+                                { code: "FR", nom: "Français (Littérature)", coefficient_defaut: 4 },
+                                { code: "LV2", nom: "Deuxième Langue Vivante (Allemand/Espagnol)", coefficient_defaut: 4 },
+                                { code: "MATH", nom: "Mathématiques", coefficient_defaut: 2 },
+                            ],
+                        },
+                        A2: {
+                            nom: "Littéraire (LV2 dominante)",
+                            matieres: [
+                                { code: "FR", nom: "Français (Littérature)", coefficient_defaut: 4 },
+                                { code: "LV2", nom: "Deuxième Langue Vivante", coefficient_defaut: 3 },
+                                { code: "MATH", nom: "Mathématiques", coefficient_defaut: 2 },
+                            ],
+                        },
+                        B: {
+                            nom: "Économique",
+                            matieres: [
+                                { code: "MATH", nom: "Mathématiques", coefficient_defaut: 4 },
+                                { code: "ECO", nom: "Économie Générale", coefficient_defaut: 3 },
+                                { code: "COMPTA", nom: "Comptabilité", coefficient_defaut: 2 },
+                                { code: "FR", nom: "Français", coefficient_defaut: 3 },
+                            ],
+                        },
+                        C: {
+                            nom: "Scientifique (Mathématiques dominantes)",
+                            matieres: [
+                                { code: "MATH", nom: "Mathématiques", coefficient_defaut: 6 },
+                                { code: "PCT", nom: "Physique-Chimie-Technologie", coefficient_defaut: 4 },
+                                { code: "SVT", nom: "Sciences de la Vie et de la Terre", coefficient_defaut: 2 },
+                                { code: "FR", nom: "Français", coefficient_defaut: 2 },
+                            ],
+                        },
+                        D: {
+                            nom: "Scientifique (SVT dominantes)",
+                            matieres: [
+                                { code: "SVT", nom: "Sciences de la Vie et de la Terre", coefficient_defaut: 4 },
+                                { code: "PCT", nom: "Physique-Chimie-Technologie", coefficient_defaut: 4 },
+                                { code: "MATH", nom: "Mathématiques", coefficient_defaut: 4 },
+                                { code: "FR", nom: "Français", coefficient_defaut: 2 },
+                            ],
+                        },
+                    },
+                },
+            },
+            ESTFP: {
+                matieres_generales_communes: [
+                    { code: "FR", nom: "Français", coefficient_defaut: 2 },
+                    { code: "MATH", nom: "Mathématiques", coefficient_defaut: 3 },
+                    { code: "ANG", nom: "Anglais", coefficient_defaut: 2 },
+                    { code: "PC", nom: "Physique-Chimie", coefficient_defaut: 2 },
+                    { code: "HG", nom: "Histoire-Géographie", coefficient_defaut: 1 },
+                    { code: "EPS", nom: "Éducation Physique et Sportive", coefficient_defaut: 1 },
+                ],
+                secteur_industriel: {
+                    nom: "Secteur Industriel & Technologies",
+                    series: {
+                        F1: { nom: "Construction & Fabrication Mécanique (MG, CEMS)", matieres_techniques: [
+                            { code: "CONSTR_MECA", nom: "Construction Mécanique", coefficient_defaut: 6 },
+                            { code: "USINAGE", nom: "Usinage", coefficient_defaut: 4 },
+                            { code: "METALLURGIE", nom: "Métallurgie", coefficient_defaut: 2 },
+                            { code: "SOUDAGE", nom: "Soudage", coefficient_defaut: 2 },
+                            { code: "MAINT_INDUS", nom: "Maintenance Industrielle", coefficient_defaut: 2 },
+                        ]},
+                        F2: { nom: "Électronique", matieres_techniques: [
+                            { code: "TELECOM", nom: "Télécommunications", coefficient_defaut: 4 },
+                            { code: "ELEC_NUM", nom: "Électronique Numérique et Analogique", coefficient_defaut: 5 },
+                            { code: "MICROPROC", nom: "Microprocesseurs", coefficient_defaut: 3 },
+                            { code: "TRAIT_SIGNAL", nom: "Traitement du Signal", coefficient_defaut: 2 },
+                        ]},
+                        F3: { nom: "Électrotechnique & Électricité (EL)", matieres_techniques: [
+                            { code: "SCHEMAS_ELEC", nom: "Schémas Électriques", coefficient_defaut: 3 },
+                            { code: "ELECTROTECH", nom: "Électrotechnique", coefficient_defaut: 5 },
+                            { code: "ELEC_PUISSANCE", nom: "Électronique de Puissance", coefficient_defaut: 3 },
+                            { code: "AUTOMATISME", nom: "Automatisme", coefficient_defaut: 3 },
+                            { code: "MESURES_ELEC", nom: "Mesures Électriques", coefficient_defaut: 2 },
+                            { code: "MACHINES_ELEC", nom: "Machines Électriques", coefficient_defaut: 2 },
+                        ]},
+                        F4: { nom: "Génie Civil & Bâtiment (BTP)", matieres_techniques: [
+                            { code: "DESSIN_TECH", nom: "Dessin Technique", coefficient_defaut: 4 },
+                            { code: "RDM", nom: "Résistance des Matériaux (RDM)", coefficient_defaut: 4 },
+                            { code: "TOPO", nom: "Topographie", coefficient_defaut: 3 },
+                            { code: "MECA_STRUCT", nom: "Mécanique des Structures", coefficient_defaut: 3 },
+                            { code: "CALC_OUVRAGES", nom: "Calcul d'Ouvrages", coefficient_defaut: 3 },
+                            { code: "TECHNO_BAT", nom: "Technologie du Bâtiment", coefficient_defaut: 3 },
+                        ]},
+                        MA: { nom: "Mécanique Automobile", matieres_techniques: [
+                            { code: "TECHNO_AUTO", nom: "Technologie Automobile", coefficient_defaut: 5 },
+                            { code: "DIAG_MOTEUR", nom: "Diagnostic Moteur", coefficient_defaut: 4 },
+                            { code: "ELEC_AUTO", nom: "Électricité Automobile", coefficient_defaut: 3 },
+                            { code: "TRANSMISSION", nom: "Organes de Transmission", coefficient_defaut: 3 },
+                        ]},
+                        FC: { nom: "Froid et Climatisation", matieres_techniques: [
+                            { code: "THERMO", nom: "Thermodynamique", coefficient_defaut: 4 },
+                            { code: "ELEC_APPLIQUEE", nom: "Électricité Appliquée", coefficient_defaut: 3 },
+                            { code: "MAINT_FRIGO", nom: "Maintenance des Systèmes Frigorifiques et Climatisation", coefficient_defaut: 5 },
+                        ]},
+                        IMI: { nom: "Installation et Maintenance Informatique", matieres_techniques: [
+                            { code: "ARCHI_ORDI", nom: "Architecture des Ordinateurs", coefficient_defaut: 4 },
+                            { code: "RESEAUX", nom: "Réseaux Informatiques", coefficient_defaut: 4 },
+                            { code: "MAINT_MAT", nom: "Maintenance Matérielle et Logicielle", coefficient_defaut: 4 },
+                            { code: "SYST_EXPL", nom: "Systèmes d'Exploitation", coefficient_defaut: 3 },
+                        ]},
+                    },
+                },
+                secteur_tertiaire: {
+                    nom: "Secteur Tertiaire, Gestion & Commerce",
+                    series: {
+                        G1: { nom: "Bureautique et Secrétariat", matieres_techniques: [
+                            { code: "STENO", nom: "Prise Rapide (Sténo)", coefficient_defaut: 4 },
+                            { code: "DACTYLO", nom: "Dactylographie / Saisie Bureautique", coefficient_defaut: 4 },
+                            { code: "COMM_ADMIN", nom: "Communication Administrative", coefficient_defaut: 3 },
+                            { code: "ORG_ADMIN", nom: "Organisation Administrative", coefficient_defaut: 3 },
+                        ]},
+                        G2: { nom: "Comptabilité et Finance", matieres_techniques: [
+                            { code: "COMPTA_GEN", nom: "Comptabilité Générale", coefficient_defaut: 5 },
+                            { code: "COMPTA_ANA", nom: "Comptabilité Analytique", coefficient_defaut: 3 },
+                            { code: "MATH_FIN", nom: "Mathématiques Financières", coefficient_defaut: 3 },
+                            { code: "DROIT", nom: "Droit (Civil, Commercial, Travail)", coefficient_defaut: 2 },
+                            { code: "FISCALITE", nom: "Fiscalité", coefficient_defaut: 2 },
+                            { code: "ECO_ENTR", nom: "Économie Générale et d'Entreprise", coefficient_defaut: 2 },
+                        ]},
+                        G3: { nom: "Commerce et Marketing", matieres_techniques: [
+                            { code: "TECH_VENTE", nom: "Techniques de Vente", coefficient_defaut: 4 },
+                            { code: "MERCATIQUE", nom: "Mercatique (Marketing)", coefficient_defaut: 4 },
+                            { code: "NEGOCE_INTL", nom: "Négoce International", coefficient_defaut: 3 },
+                            { code: "TRANSIT_DOUANE", nom: "Transit et Douane", coefficient_defaut: 2 },
+                            { code: "ECO_COMM", nom: "Économie Commerciale", coefficient_defaut: 2 },
+                        ]},
+                    },
+                },
+                secteur_agricole: {
+                    nom: "Sciences et Techniques Agricoles (STA / LTA)",
+                    series: {
+                        STA_PV: { nom: "Agronomie & Production Végétale (PV)", matieres_techniques: [
+                            { code: "PHYTOTECH", nom: "Phytotechnie", coefficient_defaut: 4 },
+                            { code: "BOTANIQUE", nom: "Botanique", coefficient_defaut: 3 },
+                            { code: "DEFENSE_CULT", nom: "Défense des Cultures", coefficient_defaut: 3 },
+                            { code: "GENET_VEG", nom: "Génétique Végétale", coefficient_defaut: 2 },
+                            { code: "PEDOLOGIE", nom: "Pédologie", coefficient_defaut: 2 },
+                        ]},
+                        STA_PA: { nom: "Production Animale (PA) & Zootechnie", matieres_techniques: [
+                            { code: "NUTRI_ANIM", nom: "Nutrition Animale", coefficient_defaut: 3 },
+                            { code: "ELEVAGE", nom: "Élevage (Aviculture, Cuniculture, Bovins...)", coefficient_defaut: 4 },
+                            { code: "SANTE_ANIM", nom: "Santé Animale", coefficient_defaut: 3 },
+                            { code: "ANAT_ANIM", nom: "Anatomie Animale", coefficient_defaut: 2 },
+                        ]},
+                        STA_AER: { nom: "Aménagement et Équipement Rural (AER)", matieres_techniques: [
+                            { code: "HYDRAU_AGRI", nom: "Hydraulique Agricole", coefficient_defaut: 3 },
+                            { code: "AGRO_EQUIP", nom: "Agro-équipement", coefficient_defaut: 3 },
+                            { code: "TRACTEURS", nom: "Tracteurs et Machines Agricoles", coefficient_defaut: 3 },
+                            { code: "TOPO_RURALE", nom: "Topographie Rurale", coefficient_defaut: 2 },
+                        ]},
+                        STA_NTA: { nom: "Nutrition et Transformation Alimentaire (NTA)", matieres_techniques: [
+                            { code: "MICROBIO_ALIM", nom: "Microbiologie Alimentaire", coefficient_defaut: 3 },
+                            { code: "BIOCHIMIE", nom: "Biochimie", coefficient_defaut: 3 },
+                            { code: "CONSERV_TRANSF", nom: "Bâtiments et Procédés de Conservation/Transformation", coefficient_defaut: 4 },
+                        ]},
+                        STA_FORET_PECHE: { nom: "Foresterie et Pêche", matieres_techniques: [
+                            { code: "ECOLOGIE", nom: "Écologie", coefficient_defaut: 3 },
+                            { code: "SYLVICULTURE", nom: "Sylviculture", coefficient_defaut: 3 },
+                            { code: "AQUACULTURE", nom: "Aquaculture", coefficient_defaut: 3 },
+                            { code: "GEST_RESSOURCES", nom: "Gestion des Ressources Halieutiques et Fauniques", coefficient_defaut: 3 },
+                        ]},
+                    },
+                },
+                secteur_sante_social_services: {
+                    nom: "Métiers de la Santé, du Social et des Services",
+                    series: {
+                        STMS: { nom: "Sciences et Techniques Médico-Sociales", matieres_techniques: [
+                            { code: "ANAT_PHYSIO", nom: "Anatomie et Physiologie Humaine", coefficient_defaut: 4 },
+                            { code: "MICROBIO", nom: "Microbiologie", coefficient_defaut: 3 },
+                            { code: "PATHOLOGIE", nom: "Pathologie", coefficient_defaut: 3 },
+                            { code: "SOINS_INF", nom: "Soins Infirmiers de Base", coefficient_defaut: 4 },
+                            { code: "HYGIENE_HOSP", nom: "Hygiène Hospitalière", coefficient_defaut: 2 },
+                            { code: "ECO_SOC_FAM", nom: "Économie Sociale et Familiale", coefficient_defaut: 2 },
+                        ]},
+                        STHRT: { nom: "Hôtellerie, Restauration et Tourisme", matieres_techniques: [
+                            { code: "CUISINE", nom: "Cuisine Théorique et Pratique", coefficient_defaut: 5 },
+                            { code: "RESTO_SERVICE", nom: "Restaurant et Service", coefficient_defaut: 3 },
+                            { code: "PATISSERIE", nom: "Pâtisserie", coefficient_defaut: 3 },
+                            { code: "GEO_TOURISTIQUE", nom: "Géographie Touristique", coefficient_defaut: 2 },
+                            { code: "MERCATIQUE_HOT", nom: "Mercatique Hôtelière", coefficient_defaut: 2 },
+                            { code: "HYGIENE_ALIM", nom: "Hygiène Alimentaire", coefficient_defaut: 2 },
+                        ]},
+                        EFS: { nom: "Enseignement Familial et Social", matieres_techniques: [
+                            { code: "COUTURE", nom: "Couture, Confection", coefficient_defaut: 4 },
+                            { code: "NUTRITION", nom: "Nutrition", coefficient_defaut: 3 },
+                            { code: "ECO_DOMESTIQUE", nom: "Économie Domestique", coefficient_defaut: 2 },
+                            { code: "PUERICULTURE", nom: "Puériculture", coefficient_defaut: 3 },
+                        ]},
+                        STMA: { nom: "Métiers d'Arts & Mode", matieres_techniques: [
+                            { code: "DESSIN_ART", nom: "Dessin d'Art", coefficient_defaut: 4 },
+                            { code: "STYLISME", nom: "Stylisme / Modélisme", coefficient_defaut: 4 },
+                            { code: "HIST_ART", nom: "Histoire de l'Art", coefficient_defaut: 2 },
+                            { code: "INFOGRAPHIE", nom: "Infographie", coefficient_defaut: 3 },
+                            { code: "EXPR_PLASTIQUE", nom: "Expression Plastique", coefficient_defaut: 3 },
+                        ]},
+                    },
+                },
+            },
+        };
+
+        function getMatieresPourSerie(cycle, secteurOuNiveau, serieCode) {
+            if (cycle === "ESG") {
+                if (secteurOuNiveau === "premier_cycle") {
+                    return REFERENTIEL_MESTFP.ESG.premier_cycle.matieres_communes;
+                }
+                const serie = REFERENTIEL_MESTFP.ESG.second_cycle.series[serieCode];
+                return [...REFERENTIEL_MESTFP.ESG.second_cycle.matieres_communes, ...(serie ? serie.matieres : [])];
+            }
+            if (cycle === "ESTFP") {
+                const secteur = REFERENTIEL_MESTFP.ESTFP[secteurOuNiveau];
+                const serie = secteur?.series?.[serieCode];
+                return [...REFERENTIEL_MESTFP.ESTFP.matieres_generales_communes, ...(serie ? serie.matieres_techniques : [])];
+            }
+            return [];
+        }
+        window.REFERENTIEL_MESTFP = REFERENTIEL_MESTFP;
+        window.getMatieresPourSerie = getMatieresPourSerie;
+
+        /* ==================================================== */
+        /* MOTEUR DE CALCUL DES MOYENNES — CONFORME MESTFP        */
+        /* ==================================================== */
+        const POIDS_TYPE_EVALUATION = {
+            interrogation: 1,
+            travail_pratique: 1,
+            devoir_surveille: 2,
+        };
+        const SEUIL_VALIDATION = 10;
+
+        function calculerMoyenneMatiereTrimestre(grades) {
+            const notesValides = grades.filter((g) => g.status === 'graded' && typeof g.value === 'number');
+            if (notesValides.length === 0) return null;
+            let sommePonderee = 0;
+            let sommePoids = 0;
+            notesValides.forEach((g) => {
+                const poids = POIDS_TYPE_EVALUATION[g.eval_type] ?? 1;
+                sommePonderee += g.value * poids;
+                sommePoids += poids;
+            });
+            if (sommePoids === 0) return null;
+            return Math.round((sommePonderee / sommePoids) * 100) / 100;
+        }
+
+        function calculerMoyenneGenerale(moyennesParMatiere) {
+            const valides = moyennesParMatiere.filter((m) => typeof m.moyenne === 'number');
+            if (valides.length === 0) return null;
+            let sommePonderee = 0;
+            let sommeCoefficients = 0;
+            valides.forEach((m) => {
+                sommePonderee += m.moyenne * m.coefficient;
+                sommeCoefficients += m.coefficient;
+            });
+            if (sommeCoefficients === 0) return null;
+            return Math.round((sommePonderee / sommeCoefficients) * 100) / 100;
+        }
+
+        function estMoyenneValidee(moyenne) {
+            return typeof moyenne === 'number' && moyenne >= SEUIL_VALIDATION;
+        }
+
+        function calculerClassement(eleves) {
+            const tries = [...eleves]
+                .filter((e) => typeof e.moyenneGenerale === 'number')
+                .sort((a, b) => b.moyenneGenerale - a.moyenneGenerale);
+            let rangActuel = 1;
+            return tries.map((eleve, index) => {
+                if (index > 0 && eleve.moyenneGenerale < tries[index - 1].moyenneGenerale) {
+                    rangActuel = index + 1;
+                }
+                return { ...eleve, rang: rangActuel };
+            });
+        }
+        window.calculerMoyenneMatiereTrimestre = calculerMoyenneMatiereTrimestre;
+        window.calculerMoyenneGenerale = calculerMoyenneGenerale;
+        window.estMoyenneValidee = estMoyenneValidee;
+        window.calculerClassement = calculerClassement;
+
+        /* ==================================================== */
+        /* EXPORT CONFORME EDUCMASTER (CSV)                       */
+        /* ==================================================== */
+        function exporterNotesVersEducMaster(lignes, nomFichier = 'export_educmaster.csv') {
+            const LABELS_TYPE = {
+                interrogation: 'Interrogation',
+                travail_pratique: 'Travail Pratique',
+                devoir_surveille: 'Devoir Surveillé',
+            };
+            const entetes = ['Matricule', 'Matiere', 'Type_Evaluation', 'Note_20'];
+            const lignesCsv = lignes.map((l) => {
+                const noteFormatee =
+                    l.statut === 'absent' ? 'ABS' :
+                    l.statut === 'dispensed' ? 'DISP' :
+                    typeof l.note === 'number' ? l.note.toFixed(2) : '';
+                return [l.matricule, l.matiere, LABELS_TYPE[l.typeEvaluation] ?? l.typeEvaluation, noteFormatee].join(';');
+            });
+            const contenuCsv = [entetes.join(';'), ...lignesCsv].join('\n');
+            const blob = new Blob(['\uFEFF' + contenuCsv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const lien = document.createElement('a');
+            lien.href = url;
+            lien.download = nomFichier;
+            document.body.appendChild(lien);
+            lien.click();
+            document.body.removeChild(lien);
+            URL.revokeObjectURL(url);
+        }
+
+        async function preparerExportEducMaster(assessmentId) {
+            if (!assessmentId || !window.supabaseClient) {
+                triggerToast("Aucune évaluation active à exporter pour l'instant.", 'warning');
+                return;
+            }
+            const { data: assessment } = await window.supabaseClient
+                .from('assessments')
+                .select('eval_type, subjects(name)')
+                .eq('id', assessmentId)
+                .single();
+
+            const { data: grades } = await window.supabaseClient
+                .from('grades')
+                .select('value, status, students(matricule)')
+                .eq('assessment_id', assessmentId);
+
+            const lignes = (grades || []).map((g) => ({
+                matricule: g.students?.matricule ?? '',
+                matiere: assessment?.subjects?.name ?? '',
+                typeEvaluation: assessment?.eval_type ?? 'devoir_surveille',
+                note: g.value,
+                statut: g.status,
+            }));
+
+            if (!lignes.length) {
+                triggerToast("Aucune note à exporter pour cette évaluation.", 'warning');
+                return;
+            }
+
+            exporterNotesVersEducMaster(lignes, `educmaster_${(assessment?.subjects?.name || 'export').replace(/\s+/g, '_')}.csv`);
+            triggerToast('Export EducMaster généré avec succès.', 'success');
+        }
+        window.preparerExportEducMaster = preparerExportEducMaster;
+
         // Initialize App on Load
         window.onload = function() {
             navigateTo('dashboard');
@@ -1835,11 +2242,23 @@
 
             const userName = document.getElementById('user-name');
             const userRoleLabel = document.getElementById('user-role-label');
+            const userAvatar = document.getElementById('user-avatar');
             const adminNavs = document.querySelectorAll('.admin-only');
             const roleLabels = { admin: "Chef d'Établissement", teacher: "Enseignant", student: "Élève", superadmin: "Gestionnaire National" };
 
             if (userName) userName.textContent = profile.full_name || session.user.email;
             if (userRoleLabel) userRoleLabel.textContent = roleLabels[profile.role] || profile.role;
+
+            if (userAvatar) {
+                const nameForInitials = (profile.full_name || session.user.email || '?').trim();
+                const initials = nameForInitials
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((word) => word[0].toUpperCase())
+                    .join('');
+                userAvatar.textContent = initials || '?';
+            }
 
             if (['admin', 'superadmin'].includes(profile.role)) {
                 adminNavs.forEach((el) => el.classList.remove('hidden'));
@@ -1856,6 +2275,7 @@
             }
 
             await loadRealAuditLogs();
+            await loadRealClassesAndSubjects();
         }
 
         window.handleRealLogin = async function (event) {
@@ -1902,6 +2322,109 @@
             }
         }
         window.loadRealAuditLogs = loadRealAuditLogs;
+
+        // ---------------- ÉCOLES, CLASSES & MATIÈRES RÉELLES ----------------
+        // Remplace les listes figées de démo (school-select, entry-class, entry-subject)
+        // par les vraies données Supabase, scopées selon le rôle réel.
+        async function loadRealClassesAndSubjects() {
+            if (!window.MASTANOTE_CONFIG.schoolId) return;
+            const role = window.MASTANOTE_CONFIG.role;
+            const schoolId = window.MASTANOTE_CONFIG.schoolId;
+
+            // --- Établissements : un admin/enseignant/élève reste sur le sien, un superadmin voit tout ---
+            const schoolSelect = document.getElementById('school-select');
+            if (schoolSelect) {
+                let schoolsQuery = window.supabaseClient.from('schools').select('id, name, city');
+                if (role !== 'superadmin') schoolsQuery = schoolsQuery.eq('id', schoolId);
+                const { data: schools } = await schoolsQuery;
+                if (schools && schools.length) {
+                    schoolSelect.innerHTML = schools
+                        .map((s) => `<option value="${s.id}" class="bg-slate-900 text-white">${s.name}${s.city ? ' - ' + s.city : ''}</option>`)
+                        .join('');
+                    schoolSelect.value = schoolId;
+                    if (role !== 'superadmin') {
+                        schoolSelect.disabled = true;
+                        schoolSelect.title = 'Votre établissement (défini côté serveur)';
+                    }
+                }
+            }
+
+            // --- Classes : un enseignant ne voit que celles où il est réellement affecté ---
+            let classes = [];
+            const { data: { user } } = await window.supabaseClient.auth.getUser();
+
+            if (role === 'teacher') {
+                const { data } = await window.supabaseClient
+                    .from('class_subject_teachers')
+                    .select('class_id, classes(id, name, level)')
+                    .eq('teacher_id', user.id);
+                const seen = new Set();
+                (data || []).forEach((row) => {
+                    if (row.classes && !seen.has(row.classes.id)) {
+                        seen.add(row.classes.id);
+                        classes.push(row.classes);
+                    }
+                });
+            } else {
+                const { data } = await window.supabaseClient
+                    .from('classes')
+                    .select('id, name, level')
+                    .eq('school_id', schoolId);
+                classes = data || [];
+            }
+
+            const classSelect = document.getElementById('entry-class');
+            if (classSelect) {
+                if (classes.length) {
+                    classSelect.innerHTML = classes.map((c) => `<option value="${c.id}">${c.name}</option>`).join('');
+                    window.MASTANOTE_CONFIG.currentClassId = classes[0].id;
+                } else {
+                    classSelect.innerHTML = '<option value="">Aucune classe assignée</option>';
+                    window.MASTANOTE_CONFIG.currentClassId = null;
+                }
+            }
+
+            await loadRealSubjectsForClass(window.MASTANOTE_CONFIG.currentClassId);
+        }
+        window.loadRealClassesAndSubjects = loadRealClassesAndSubjects;
+
+        // --- Matières : pour un enseignant, uniquement celles assignées sur la classe sélectionnée ---
+        async function loadRealSubjectsForClass(classId) {
+            const subjectSelect = document.getElementById('entry-subject');
+            if (!subjectSelect || !classId) return;
+
+            const role = window.MASTANOTE_CONFIG.role;
+            let subjects = [];
+
+            if (role === 'teacher') {
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                const { data } = await window.supabaseClient
+                    .from('class_subject_teachers')
+                    .select('subject_id, coefficient, subjects(id, name)')
+                    .eq('class_id', classId)
+                    .eq('teacher_id', user.id);
+                subjects = (data || [])
+                    .filter((r) => r.subjects)
+                    .map((r) => ({ id: r.subjects.id, name: r.subjects.name, coefficient: r.coefficient }));
+            } else {
+                const { data } = await window.supabaseClient
+                    .from('subjects')
+                    .select('id, name, default_coefficient')
+                    .eq('school_id', window.MASTANOTE_CONFIG.schoolId);
+                subjects = (data || []).map((s) => ({ id: s.id, name: s.name, coefficient: s.default_coefficient }));
+            }
+
+            if (subjects.length) {
+                subjectSelect.innerHTML = subjects
+                    .map((s) => `<option value="${s.id}">${s.name} (Coef. ${s.coefficient})</option>`)
+                    .join('');
+                window.MASTANOTE_CONFIG.currentSubjectId = subjects[0].id;
+            } else {
+                subjectSelect.innerHTML = '<option value="">Aucune matière assignée pour cette classe</option>';
+                window.MASTANOTE_CONFIG.currentSubjectId = null;
+            }
+        }
+        window.loadRealSubjectsForClass = loadRealSubjectsForClass;
 
         // ---------------- SCAN IA RÉEL (remplace la simulation) ----------------
         // Appelée depuis handleScanFileSelect() une fois l'image en base64 disponible.
