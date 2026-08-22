@@ -10,6 +10,8 @@
     
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     
     <!-- Google Fonts Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -448,8 +450,16 @@
                 </div>
 
                 <!-- Quick Actions: Voice Input & Sheet Scan -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <button onclick="openVoiceModal()" class="bg-white border-2 border-purple-200 hover:border-purple-400 rounded-2xl p-4 flex items-center space-x-4 transition text-left shadow-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <button onclick="openCreateClassModal()" class="bg-white border-2 border-indigo-200 hover:border-indigo-400 rounded-2xl p-4 flex items-center space-x-4 transition text-left shadow-sm">
+                        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm">Créer une Classe</h4>
+                            <p class="text-xs text-slate-500">Niveau/série MESTFP + import des élèves</p>
+                        </div>
+                    </button>
                         <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                             <i class="fa-solid fa-microphone"></i>
                         </div>
@@ -480,7 +490,9 @@
                             <span>•</span>
                             <button onclick="openScanModal()" class="text-amber-600 hover:text-amber-800 font-semibold"><i class="fa-solid fa-camera mr-1"></i> Scanner une Feuille</button>
                             <span>•</span>
-                            <button onclick="preparerExportEducMaster(window.MASTANOTE_CONFIG.currentAssessmentId)" class="text-emerald-600 hover:text-emerald-800 font-semibold"><i class="fa-solid fa-file-export mr-1"></i> Exporter EducMaster</button>
+                            <button onclick="exporterEnCSV(window.MASTANOTE_CONFIG.currentAssessmentId)" class="text-emerald-600 hover:text-emerald-800 font-semibold"><i class="fa-solid fa-file-csv mr-1"></i> Export CSV</button>
+                            <span>•</span>
+                            <button onclick="exporterEnXLSX(window.MASTANOTE_CONFIG.currentAssessmentId)" class="text-emerald-700 hover:text-emerald-900 font-semibold"><i class="fa-solid fa-file-excel mr-1"></i> Export Excel (.xlsx)</button>
                             <span>•</span>
                             <span id="sync-indicator" class="text-emerald-600 font-semibold"><i class="fa-solid fa-cloud-check mr-1"></i> Données synchronisées</span>
                         </div>
@@ -1091,6 +1103,79 @@
                 </button>
             </form>
             <p class="text-[10px] text-slate-400 text-center">Compte créé par votre administrateur d'établissement (Supabase Authentication → Users).</p>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 4: CRÉER UNE CLASSE & IMPORTER LES ÉLÈVES -->
+    <!-- ========================================== -->
+    <div id="create-class-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl relative border border-slate-200 my-8">
+            <button onclick="closeCreateClassModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900">Créer une Classe</h3>
+                <p class="text-xs text-slate-500">Sélectionnez le cycle, le niveau/série, puis vos matières enseignées</p>
+            </div>
+
+            <!-- ÉTAPE 1 : Cycle + Niveau/Série -->
+            <div id="cc-step-1" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="selectCycle('ESG')" data-cycle-btn="ESG" class="cycle-btn border-2 border-slate-200 hover:border-indigo-400 rounded-xl p-3 text-center font-semibold text-sm transition">
+                        Enseignement Général (ESG)
+                    </button>
+                    <button onclick="selectCycle('ESTFP')" data-cycle-btn="ESTFP" class="cycle-btn border-2 border-slate-200 hover:border-indigo-400 rounded-xl p-3 text-center font-semibold text-sm transition">
+                        Technique & Pro (ESTFP)
+                    </button>
+                </div>
+
+                <div id="cc-niveau-serie-wrapper" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Niveau / Série :</label>
+                        <select id="cc-niveau-serie" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none" onchange="onNiveauSerieChange()"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nom de la classe (ex : 3ème M1, 2nde C, 1ère G2) :</label>
+                        <input id="cc-class-name" type="text" placeholder="Ex : 3ème M1" class="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Matière(s) enseignée(s) :</label>
+                        <div id="cc-matieres-list" class="border-2 border-slate-200 rounded-xl p-3 max-h-52 overflow-y-auto space-y-2 text-sm"></div>
+                    </div>
+                    <button onclick="creerClasseEtMatieres()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+                        <i class="fa-solid fa-check mr-1.5"></i> Créer la classe
+                    </button>
+                </div>
+            </div>
+
+            <!-- ÉTAPE 2 : Modèle & Import -->
+            <div id="cc-step-2" class="hidden space-y-4">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800">
+                    <i class="fa-solid fa-circle-check mr-1"></i> Classe créée avec succès. Téléchargez le modèle, remplissez-le, puis importez-le.
+                </div>
+
+                <button onclick="telechargerModeleImport()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-2.5 rounded-xl transition text-sm">
+                    <i class="fa-solid fa-download mr-1.5"></i> Télécharger le modèle d'import (.xlsx)
+                </button>
+
+                <label for="cc-import-file" class="block border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-2xl p-5 text-center cursor-pointer transition">
+                    <i class="fa-solid fa-file-arrow-up text-2xl text-slate-400 mb-1"></i>
+                    <p class="text-sm font-semibold text-slate-700">Importer le modèle rempli</p>
+                    <p class="text-xs text-slate-400">Fichier .xlsx uniquement</p>
+                </label>
+                <input type="file" id="cc-import-file" accept=".xlsx" class="hidden" onchange="importerListeEleves(event)">
+
+                <div id="cc-import-report" class="hidden text-xs space-y-1"></div>
+
+                <button onclick="closeCreateClassModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+                    Terminer & Fermer
+                </button>
+            </div>
         </div>
     </div>
 
@@ -2172,13 +2257,430 @@
 
             if (!lignes.length) {
                 triggerToast("Aucune note à exporter pour cette évaluation.", 'warning');
+                return null;
+            }
+
+            return { lignes, nomBase: `educmaster_${(assessment?.subjects?.name || 'export').replace(/\s+/g, '_')}` };
+        }
+
+        /* ==================================================== */
+        /* PAYWALL — VÉRIFICATION D'ABONNEMENT AVANT EXPORT       */
+        /* ==================================================== */
+        async function verifierAbonnementActif() {
+            if (!window.supabaseClient) return false;
+            const { data, error } = await window.supabaseClient.rpc('has_active_subscription');
+            if (error) {
+                console.warn('Vérification abonnement échouée :', error);
+                return false; // par sécurité, on bloque l'export si la vérification échoue
+            }
+            return data === true;
+        }
+
+        async function exporterEnCSV(assessmentId) {
+            const abonneActif = await verifierAbonnementActif();
+            if (!abonneActif) {
+                openPaymentModal(1500, 'Plan Annuel Pro (12 Mois)');
+                triggerToast('Un abonnement actif est requis pour exporter vos grilles de notes.', 'warning');
+                return;
+            }
+            const prepared = await preparerExportEducMaster(assessmentId);
+            if (!prepared) return;
+            exporterNotesVersEducMaster(prepared.lignes, `${prepared.nomBase}.csv`);
+            triggerToast('Export CSV EducMaster généré avec succès.', 'success');
+        }
+        window.exporterEnCSV = exporterEnCSV;
+
+        async function exporterEnXLSX(assessmentId) {
+            const abonneActif = await verifierAbonnementActif();
+            if (!abonneActif) {
+                openPaymentModal(1500, 'Plan Annuel Pro (12 Mois)');
+                triggerToast('Un abonnement actif est requis pour exporter vos grilles de notes.', 'warning');
                 return;
             }
 
-            exporterNotesVersEducMaster(lignes, `educmaster_${(assessment?.subjects?.name || 'export').replace(/\s+/g, '_')}.csv`);
-            triggerToast('Export EducMaster généré avec succès.', 'success');
+            const prepared = await preparerExportEducMaster(assessmentId);
+            if (!prepared) return;
+
+            if (typeof ExcelJS === 'undefined') {
+                triggerToast("La bibliothèque Excel n'a pas pu se charger. Vérifiez votre connexion.", 'warning');
+                return;
+            }
+
+            const LABELS_TYPE = {
+                interrogation: 'Interrogation',
+                travail_pratique: 'Travail Pratique',
+                devoir_surveille: 'Devoir Surveillé',
+            };
+
+            const classeur = new ExcelJS.Workbook();
+            const feuille = classeur.addWorksheet('Notes');
+
+            feuille.columns = [
+                { header: 'Matricule', key: 'matricule', width: 16 },
+                { header: 'Matière', key: 'matiere', width: 30 },
+                { header: "Type d'évaluation", key: 'type', width: 20 },
+                { header: 'Note / 20', key: 'note', width: 12 },
+            ];
+
+            // En-tête stylé : fond bleu marine, texte blanc, gras
+            const ligneEntete = feuille.getRow(1);
+            ligneEntete.eachCell((cell) => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+                cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = { bottom: { style: 'thin' } };
+            });
+
+            let sommeNotes = 0;
+            let nbNotesValides = 0;
+
+            prepared.lignes.forEach((l) => {
+                const noteAffichee =
+                    l.statut === 'absent' ? 'ABS' :
+                    l.statut === 'dispensed' ? 'DISP' :
+                    typeof l.note === 'number' ? l.note : '';
+                if (typeof l.note === 'number' && l.statut === 'graded') {
+                    sommeNotes += l.note;
+                    nbNotesValides += 1;
+                }
+                const ligne = feuille.addRow({
+                    matricule: l.matricule,
+                    matiere: l.matiere,
+                    type: LABELS_TYPE[l.typeEvaluation] ?? l.typeEvaluation,
+                    note: noteAffichee,
+                });
+                ligne.eachCell((cell) => {
+                    cell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } } };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                });
+                // Mise en évidence des notes en-dessous du seuil de validation (10/20)
+                if (typeof l.note === 'number' && l.note < 10) {
+                    ligne.getCell('note').font = { color: { argb: 'FFDC2626' }, bold: true };
+                } else if (typeof l.note === 'number') {
+                    ligne.getCell('note').font = { color: { argb: 'FF15803D' }, bold: true };
+                }
+            });
+
+            // Ligne de synthèse (moyenne de la classe pour cette évaluation)
+            const moyenneClasse = nbNotesValides > 0 ? Math.round((sommeNotes / nbNotesValides) * 100) / 100 : null;
+            feuille.addRow({}); // ligne vide de séparation
+            const ligneMoyenne = feuille.addRow({
+                matricule: '',
+                matiere: '',
+                type: 'Moyenne de la classe',
+                note: moyenneClasse ?? '—',
+            });
+            ligneMoyenne.eachCell((cell) => {
+                cell.font = { bold: true, italic: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            });
+
+            feuille.getColumn('matricule').alignment = { horizontal: 'center' };
+
+            const buffer = await classeur.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const lien = document.createElement('a');
+            lien.href = url;
+            lien.download = `${prepared.nomBase}.xlsx`;
+            document.body.appendChild(lien);
+            lien.click();
+            document.body.removeChild(lien);
+            URL.revokeObjectURL(url);
+
+            triggerToast('Export Excel (.xlsx) premium généré avec succès.', 'success');
         }
-        window.preparerExportEducMaster = preparerExportEducMaster;
+        window.exporterEnXLSX = exporterEnXLSX;
+
+        /* ==================================================== */
+        /* CRÉATION DE CLASSE PAR L'ENSEIGNANT (SELF-SERVICE)     */
+        /* ==================================================== */
+        let ccState = { cycle: null, matieresDisponibles: [], nouvelleClasseId: null };
+
+        function openCreateClassModal() {
+            document.getElementById('create-class-modal').classList.remove('hidden');
+            document.getElementById('cc-step-1').classList.remove('hidden');
+            document.getElementById('cc-step-2').classList.add('hidden');
+            document.getElementById('cc-niveau-serie-wrapper').classList.add('hidden');
+            document.querySelectorAll('.cycle-btn').forEach((b) => b.classList.remove('border-indigo-500', 'bg-indigo-50'));
+            ccState = { cycle: null, matieresDisponibles: [], nouvelleClasseId: null };
+        }
+        window.openCreateClassModal = openCreateClassModal;
+
+        function closeCreateClassModal() {
+            document.getElementById('create-class-modal').classList.add('hidden');
+        }
+        window.closeCreateClassModal = closeCreateClassModal;
+
+        function selectCycle(cycle) {
+            ccState.cycle = cycle;
+            document.querySelectorAll('.cycle-btn').forEach((b) => {
+                const actif = b.dataset.cycleBtn === cycle;
+                b.classList.toggle('border-indigo-500', actif);
+                b.classList.toggle('bg-indigo-50', actif);
+            });
+
+            const niveauSelect = document.getElementById('cc-niveau-serie');
+            niveauSelect.innerHTML = '';
+
+            if (cycle === 'ESG') {
+                niveauSelect.innerHTML += `<optgroup label="Premier cycle">
+                    <option value="ESG|premier_cycle|6eme">6ème</option>
+                    <option value="ESG|premier_cycle|5eme">5ème</option>
+                    <option value="ESG|premier_cycle|4eme">4ème</option>
+                    <option value="ESG|premier_cycle|3eme">3ème</option>
+                </optgroup>`;
+                Object.entries(REFERENTIEL_MESTFP.ESG.second_cycle.series).forEach(([code, serie]) => {
+                    niveauSelect.innerHTML += `<option value="ESG|second_cycle|${code}">Série ${code} — ${serie.nom}</option>`;
+                });
+            } else {
+                Object.entries(REFERENTIEL_MESTFP.ESTFP).forEach(([secteurKey, secteur]) => {
+                    if (secteurKey === 'matieres_generales_communes' || !secteur.series) return;
+                    Object.entries(secteur.series).forEach(([code, serie]) => {
+                        niveauSelect.innerHTML += `<option value="ESTFP|${secteurKey}|${code}">${code} — ${serie.nom}</option>`;
+                    });
+                });
+            }
+
+            document.getElementById('cc-niveau-serie-wrapper').classList.remove('hidden');
+            onNiveauSerieChange();
+        }
+        window.selectCycle = selectCycle;
+
+        function onNiveauSerieChange() {
+            const [cycle, secteurOuNiveau, serieCode] = document.getElementById('cc-niveau-serie').value.split('|');
+            const matieres = getMatieresPourSerie(cycle, secteurOuNiveau, serieCode);
+            ccState.matieresDisponibles = matieres;
+
+            const listEl = document.getElementById('cc-matieres-list');
+            listEl.innerHTML = matieres.map((m, i) => `
+                <label class="flex items-center justify-between gap-2 py-1">
+                    <span class="flex items-center gap-2">
+                        <input type="checkbox" class="cc-matiere-checkbox" data-index="${i}" checked>
+                        ${m.nom}
+                    </span>
+                    <input type="number" class="cc-matiere-coef w-16 border border-slate-200 rounded-lg px-2 py-1 text-xs" data-index="${i}" value="${m.coefficient_defaut}" min="1" max="10">
+                </label>
+            `).join('');
+        }
+        window.onNiveauSerieChange = onNiveauSerieChange;
+
+        async function creerClasseEtMatieres() {
+            const className = document.getElementById('cc-class-name').value.trim();
+            const [cycle, secteurOuNiveau, serieCode] = document.getElementById('cc-niveau-serie').value.split('|');
+
+            if (!className) {
+                triggerToast('Merci de renseigner le nom de la classe.', 'warning');
+                return;
+            }
+
+            const matieresSelectionnees = [];
+            document.querySelectorAll('.cc-matiere-checkbox').forEach((cb) => {
+                if (cb.checked) {
+                    const idx = Number(cb.dataset.index);
+                    const coefInput = document.querySelector(`.cc-matiere-coef[data-index="${idx}"]`);
+                    matieresSelectionnees.push({ ...ccState.matieresDisponibles[idx], coefficient: Number(coefInput.value) || 1 });
+                }
+            });
+
+            if (matieresSelectionnees.length === 0) {
+                triggerToast('Sélectionnez au moins une matière.', 'warning');
+                return;
+            }
+
+            const schoolId = window.MASTANOTE_CONFIG.schoolId;
+            const { data: { user } } = await window.supabaseClient.auth.getUser();
+
+            const { data: classeCreee, error: erreurClasse } = await window.supabaseClient
+                .from('classes')
+                .insert({ school_id: schoolId, name: className, level: serieCode })
+                .select()
+                .single();
+
+            if (erreurClasse) {
+                triggerToast('Erreur lors de la création de la classe : ' + erreurClasse.message, 'warning');
+                return;
+            }
+
+            for (const matiere of matieresSelectionnees) {
+                let { data: subjectExistant } = await window.supabaseClient
+                    .from('subjects')
+                    .select('id')
+                    .eq('school_id', schoolId)
+                    .eq('name', matiere.nom)
+                    .maybeSingle();
+
+                let subjectId = subjectExistant?.id;
+                if (!subjectId) {
+                    const { data: nouvelleMatiere, error: erreurMatiere } = await window.supabaseClient
+                        .from('subjects')
+                        .insert({ school_id: schoolId, name: matiere.nom, default_coefficient: matiere.coefficient })
+                        .select()
+                        .single();
+                    if (erreurMatiere) {
+                        triggerToast(`Erreur matière "${matiere.nom}" : ` + erreurMatiere.message, 'warning');
+                        continue;
+                    }
+                    subjectId = nouvelleMatiere.id;
+                }
+
+                const { error: erreurLien } = await window.supabaseClient
+                    .from('class_subject_teachers')
+                    .insert({ class_id: classeCreee.id, subject_id: subjectId, teacher_id: user.id, coefficient: matiere.coefficient });
+
+                if (erreurLien) {
+                    triggerToast(`Erreur d'affectation "${matiere.nom}" : ` + erreurLien.message, 'warning');
+                }
+            }
+
+            ccState.nouvelleClasseId = classeCreee.id;
+            document.getElementById('cc-step-1').classList.add('hidden');
+            document.getElementById('cc-step-2').classList.remove('hidden');
+
+            await loadRealClassesAndSubjects();
+            triggerToast(`Classe "${className}" créée avec succès.`, 'success');
+        }
+        window.creerClasseEtMatieres = creerClasseEtMatieres;
+
+        /* ==================================================== */
+        /* MODÈLE D'IMPORT ÉLÈVES & IMPORT ROBUSTE                */
+        /* ==================================================== */
+        function telechargerModeleImport() {
+            if (typeof XLSX === 'undefined') {
+                triggerToast("La bibliothèque Excel n'a pas pu se charger.", 'warning');
+                return;
+            }
+            const className = document.getElementById('cc-class-name').value.trim() || 'Classe';
+            const matieresNoms = Array.from(document.querySelectorAll('.cc-matiere-checkbox:checked'))
+                .map((cb) => ccState.matieresDisponibles[Number(cb.dataset.index)].nom)
+                .join(', ');
+
+            const donnees = [
+                [`Classe : ${className}`, `Matière(s) : ${matieresNoms}`, '', ''],
+                ['Nom', 'Prénoms', 'Sexe', 'Matricule EducMaster'],
+                ['DOSSOU', 'Ablawa Victoire', 'F', '2526-001'],
+                ['', '', '', ''],
+            ];
+
+            const feuille = XLSX.utils.aoa_to_sheet(donnees);
+            feuille['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 8 }, { wch: 20 }];
+            feuille['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+
+            const classeur = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(classeur, feuille, 'Import Élèves');
+            XLSX.writeFile(classeur, `Modele_Import_Eleves_MastaNote_${className.replace(/\s+/g, '_')}.xlsx`);
+        }
+        window.telechargerModeleImport = telechargerModeleImport;
+
+        function importerListeEleves(event) {
+            const fichier = event.target.files[0];
+            if (!fichier) return;
+
+            const lecteur = new FileReader();
+            lecteur.onload = async (e) => {
+                try {
+                    const donnees = new Uint8Array(e.target.result);
+                    const classeur = XLSX.read(donnees, { type: 'array' });
+                    const feuille = classeur.Sheets[classeur.SheetNames[0]];
+                    const lignes = XLSX.utils.sheet_to_json(feuille, { header: 1, defval: '' });
+
+                    // Recherche robuste de la ligne d'en-tête réelle (celle contenant "Matricule")
+                    const indexEntete = lignes.findIndex((ligne) =>
+                        ligne.some((cellule) => String(cellule).toLowerCase().includes('matricule'))
+                    );
+
+                    if (indexEntete === -1) {
+                        afficherRapportImport(['❌ Impossible de trouver la ligne d\'en-tête (colonne "Matricule EducMaster" introuvable). Utilisez le modèle téléchargé sans modifier ses en-têtes.']);
+                        return;
+                    }
+
+                    const entetes = lignes[indexEntete].map((h) => String(h).toLowerCase().trim());
+                    const idxNom = entetes.findIndex((h) => h.includes('nom') && !h.includes('prénom') && !h.includes('prenom'));
+                    const idxPrenoms = entetes.findIndex((h) => h.includes('prénom') || h.includes('prenom'));
+                    const idxSexe = entetes.findIndex((h) => h.includes('sexe'));
+                    const idxMatricule = entetes.findIndex((h) => h.includes('matricule'));
+
+                    const rapport = [];
+                    const matriculesVus = new Set();
+                    const eleveslmporter = [];
+
+                    for (let i = indexEntete + 1; i < lignes.length; i++) {
+                        const ligne = lignes[i];
+                        if (!ligne || ligne.every((c) => String(c).trim() === '')) continue; // ligne vide, on ignore
+
+                        const nom = String(ligne[idxNom] ?? '').trim();
+                        const prenoms = String(ligne[idxPrenoms] ?? '').trim();
+                        const sexeBrut = String(ligne[idxSexe] ?? '').trim().toUpperCase();
+                        const matricule = String(ligne[idxMatricule] ?? '').trim();
+
+                        if (!matricule) {
+                            rapport.push(`⚠️ Ligne ${i + 1} ignorée : matricule manquant.`);
+                            continue;
+                        }
+                        if (matriculesVus.has(matricule)) {
+                            rapport.push(`⚠️ Ligne ${i + 1} ignorée : matricule "${matricule}" en doublon dans le fichier.`);
+                            continue;
+                        }
+                        if (!nom && !prenoms) {
+                            rapport.push(`⚠️ Ligne ${i + 1} ignorée : nom et prénoms manquants.`);
+                            continue;
+                        }
+                        const sexe = ['M', 'F'].includes(sexeBrut) ? sexeBrut : null;
+                        if (!sexe) {
+                            rapport.push(`⚠️ Ligne ${i + 1} : sexe non reconnu ("${sexeBrut}"), importé quand même sans cette information.`);
+                        }
+
+                        matriculesVus.add(matricule);
+                        eleveslmporter.push({
+                            school_id: window.MASTANOTE_CONFIG.schoolId,
+                            class_id: ccState.nouvelleClasseId,
+                            matricule,
+                            full_name: `${nom.toUpperCase()} ${prenoms}`.trim(),
+                            sex: sexe,
+                        });
+                    }
+
+                    if (eleveslmporter.length === 0) {
+                        afficherRapportImport(['❌ Aucun élève valide trouvé dans le fichier.', ...rapport]);
+                        return;
+                    }
+
+                    const { data: inseres, error } = await window.supabaseClient
+                        .from('students')
+                        .insert(eleveslmporter)
+                        .select();
+
+                    if (error) {
+                        // Cas fréquent : un matricule existe déjà pour cet établissement (contrainte unique)
+                        afficherRapportImport([
+                            `❌ Erreur lors de l'enregistrement : ${error.message}`,
+                            'Astuce : si certains matricules existent déjà, retirez-les du fichier et réessayez.',
+                            ...rapport,
+                        ]);
+                        return;
+                    }
+
+                    afficherRapportImport([
+                        `✅ ${inseres.length} élève(s) importé(s) avec succès.`,
+                        ...rapport,
+                    ]);
+                    triggerToast(`${inseres.length} élève(s) importé(s) avec succès.`, 'success');
+                    await loadRealClassesAndSubjects();
+                } catch (erreurParsing) {
+                    afficherRapportImport(['❌ Le fichier n\'a pas pu être lu. Vérifiez qu\'il s\'agit bien du modèle .xlsx fourni, non modifié dans sa structure.']);
+                    console.error(erreurParsing);
+                }
+            };
+            lecteur.readAsArrayBuffer(fichier);
+        }
+        window.importerListeEleves = importerListeEleves;
+
+        function afficherRapportImport(lignes) {
+            const zone = document.getElementById('cc-import-report');
+            zone.classList.remove('hidden');
+            zone.innerHTML = lignes.map((l) => `<p class="text-slate-600">${l}</p>`).join('');
+        }
 
         // Initialize App on Load
         window.onload = function() {
