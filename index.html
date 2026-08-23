@@ -129,9 +129,9 @@
                 </div>
 
                 <!-- Subscription Status Badge -->
-                <button onclick="navigateTo('subscription')" id="sub-badge" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center hover:bg-emerald-500/30 transition">
-                    <i class="fa-solid fa-circle-check text-emerald-400 mr-1.5 text-[10px]"></i>
-                    <span id="sub-badge-text">Pass Pro Actif</span>
+                <button onclick="navigateTo('subscription')" id="sub-badge" class="bg-slate-500/20 text-slate-300 border border-slate-500/40 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center hover:bg-slate-500/30 transition">
+                    <i id="sub-badge-icon" class="fa-solid fa-circle-notch fa-spin text-slate-400 mr-1.5 text-[10px]"></i>
+                    <span id="sub-badge-text">Vérification…</span>
                 </button>
             </div>
         </div>
@@ -323,10 +323,10 @@
                         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-medium text-slate-500">Statut Abonnement</span>
-                                <span class="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-check"></i></span>
+                                <span id="kpi-sub-icon-wrap" class="w-8 h-8 bg-slate-50 text-slate-400 rounded-lg flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
                             </div>
-                            <div class="text-xl font-extrabold text-emerald-600">Actif (312 jours)</div>
-                            <p class="text-xs text-slate-500 mt-1">Plan Anuel Pro • 1500 FCFA/Prof</p>
+                            <div id="kpi-sub-status" class="text-xl font-extrabold text-slate-400">Vérification…</div>
+                            <p id="kpi-sub-detail" class="text-xs text-slate-500 mt-1">—</p>
                         </div>
 
                         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -787,7 +787,7 @@
                                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> Support technique béninois</li>
                             </ul>
                         </div>
-                        <button onclick="openPaymentModal(1500, 'Plan Annuel Pro (12 Mois)')" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition">
+                        <button onclick="openPaymentModal(1500, 'Plan Annuel Pro (12 Mois)', 'annuel')" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition">
                             S'abonner via Mobile Money
                         </button>
                     </div>
@@ -810,7 +810,7 @@
                                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Module d'analyse prédictive d'examens</li>
                             </ul>
                         </div>
-                        <button onclick="openPaymentModal(3000, 'Plan Triennal Pro (36 Mois)')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+                        <button onclick="openPaymentModal(3000, 'Plan Triennal Pro (36 Mois)', 'triennal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
                             S'abonner pour 3 Ans (3 000 FCFA)
                         </button>
                     </div>
@@ -920,35 +920,23 @@
                 <p id="pay-plan-title" class="text-xs text-slate-500">Abonnement Pro • 1 500 FCFA</p>
             </div>
 
-            <!-- Operator Choice -->
-            <div class="space-y-3">
-                <label class="block text-xs font-semibold text-slate-600">Sélectionnez votre réseau au Bénin :</label>
-                <div class="grid grid-cols-3 gap-3">
-                    <button type="button" onclick="selectOperator('mtn')" class="op-btn border-2 border-amber-400 bg-amber-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-amber-100 transition">
-                        <span class="font-extrabold text-xs text-amber-900">MTN MoMo</span>
-                    </button>
-                    <button type="button" onclick="selectOperator('moov')" class="op-btn border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-slate-50 transition">
-                        <span class="font-extrabold text-xs text-blue-900">Moov Money</span>
-                    </button>
-                    <button type="button" onclick="selectOperator('celtiis')" class="op-btn border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-slate-50 transition">
-                        <span class="font-extrabold text-xs text-purple-900">Celtiis Cash</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Phone Input -->
-            <div class="space-y-1">
-                <label class="block text-xs font-semibold text-slate-600">Numéro de Téléphone (Bénin) :</label>
-                <div class="relative">
-                    <span class="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">+229</span>
-                    <input type="text" id="pay-phone" value="97 00 11 22" class="w-full pl-14 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-600 space-y-2">
+                <p>Vous allez être redirigé vers la page de paiement sécurisée <strong>Chariow</strong>, où vous pourrez :</p>
+                <ul class="list-disc list-inside space-y-1 text-xs">
+                    <li>Choisir votre réseau (MTN MoMo, Moov Money ou Celtiis Cash)</li>
+                    <li>Saisir votre numéro et confirmer via le code envoyé sur votre téléphone</li>
+                </ul>
+                <p class="text-xs text-slate-400">Une fois le paiement validé, revenez sur MastaNote et cliquez sur "Rafraîchir mon statut" — l'activation est automatique dès confirmation de Chariow.</p>
             </div>
 
             <!-- Submit Button -->
             <button onclick="processMobilePayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
                 <i class="fa-solid fa-lock"></i>
-                <span>Valider le Paiement Sécurisé</span>
+                <span>Continuer vers le Paiement Sécurisé</span>
+            </button>
+
+            <button onclick="rafraichirStatutAbonnement(); closePaymentModal(); triggerToast('Statut d\'abonnement actualisé.', 'info');" class="w-full text-slate-500 hover:text-slate-700 text-xs font-semibold py-1 transition">
+                <i class="fa-solid fa-rotate mr-1"></i> J'ai déjà payé — Rafraîchir mon statut
             </button>
 
             <p class="text-[10px] text-slate-400 text-center">
@@ -1843,9 +1831,16 @@
         }
 
         /* ==================================================== */
-        /* MOBILE MONEY PAYMENT MODAL & WEBHOOK SIMULATION     */
+        /* MOBILE MONEY PAYMENT MODAL — REDIRECTION RÉELLE CHARIOW */
         /* ==================================================== */
-        function openPaymentModal(amount, title) {
+        const CHARIOW_CHECKOUT_URLS = {
+            annuel: 'https://soudoboutik-ebook.mychariow.shop/prd_nykas6gl/checkout',
+            triennal: 'https://soudoboutik-ebook.mychariow.shop/prd_3ahb14ei/checkout',
+        };
+        let planEnCoursDePaiement = 'annuel';
+
+        function openPaymentModal(amount, title, planCode = 'annuel') {
+            planEnCoursDePaiement = planCode;
             document.getElementById('pay-plan-title').textContent = `${title} • ${amount} FCFA`;
             document.getElementById('payment-modal').classList.remove('hidden');
         }
@@ -1854,22 +1849,11 @@
             document.getElementById('payment-modal').classList.add('hidden');
         }
 
-        function selectOperator(op) {
-            document.querySelectorAll('.op-btn').forEach(b => b.className = 'op-btn border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-slate-50 transition');
-            event.currentTarget.className = 'op-btn border-2 border-emerald-500 bg-emerald-50 p-3 rounded-2xl flex flex-col items-center justify-center text-center transition';
-        }
-
         function processMobilePayment() {
-            const phone = document.getElementById('pay-phone').value;
+            const url = CHARIOW_CHECKOUT_URLS[planEnCoursDePaiement] || CHARIOW_CHECKOUT_URLS.annuel;
             closePaymentModal();
-            triggerToast(`Prompt USSD envoyé au +229 ${phone}. Veuillez entrer votre code secret...`, 'info');
-
-            // Simulate Server Webhook Confirmation after 2.5s
-            setTimeout(() => {
-                state.subscriptionActive = true;
-                document.getElementById('sub-badge-text').textContent = 'Pass Pro Actif';
-                triggerToast('Webhook serveur reçu : Paiement Mobile Money validé ! Abonnement actif.', 'success');
-            }, 2500);
+            window.open(url, '_blank');
+            triggerToast('Redirection vers la page de paiement sécurisée Chariow dans un nouvel onglet…', 'info');
         }
 
         /* ==================================================== */
@@ -2329,6 +2313,56 @@
             }
             return data === true;
         }
+
+        async function rafraichirStatutAbonnement() {
+            const badgeText = document.getElementById('sub-badge-text');
+            const badgeIcon = document.getElementById('sub-badge-icon');
+            const badgeBtn = document.getElementById('sub-badge');
+            const kpiStatus = document.getElementById('kpi-sub-status');
+            const kpiDetail = document.getElementById('kpi-sub-detail');
+            const kpiIconWrap = document.getElementById('kpi-sub-icon-wrap');
+
+            const { data: { user } } = await window.supabaseClient.auth.getUser();
+            const { data: abonnement } = await window.supabaseClient
+                .from('subscriptions')
+                .select('plan, status, expires_at')
+                .eq('teacher_id', user.id)
+                .eq('status', 'active')
+                .order('expires_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            const actif = !!abonnement && (!abonnement.expires_at || new Date(abonnement.expires_at) > new Date());
+
+            if (actif) {
+                const joursRestants = abonnement.expires_at
+                    ? Math.max(0, Math.ceil((new Date(abonnement.expires_at) - new Date()) / (1000 * 60 * 60 * 24)))
+                    : null;
+
+                if (badgeText) badgeText.textContent = 'Pass Pro Actif';
+                if (badgeIcon) badgeIcon.className = 'fa-solid fa-circle-check text-emerald-400 mr-1.5 text-[10px]';
+                if (badgeBtn) badgeBtn.className = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center hover:bg-emerald-500/30 transition';
+
+                if (kpiStatus) {
+                    kpiStatus.textContent = joursRestants !== null ? `Actif (${joursRestants} jours)` : 'Actif';
+                    kpiStatus.className = 'text-xl font-extrabold text-emerald-600';
+                }
+                if (kpiDetail) kpiDetail.textContent = `${abonnement.plan || 'Abonnement'}`;
+                if (kpiIconWrap) kpiIconWrap.className = 'w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-sm font-bold';
+            } else {
+                if (badgeText) badgeText.textContent = 'Pass Inactif';
+                if (badgeIcon) badgeIcon.className = 'fa-solid fa-circle-exclamation text-amber-400 mr-1.5 text-[10px]';
+                if (badgeBtn) badgeBtn.className = 'bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center hover:bg-amber-500/30 transition';
+
+                if (kpiStatus) {
+                    kpiStatus.textContent = 'Inactif';
+                    kpiStatus.className = 'text-xl font-extrabold text-amber-600';
+                }
+                if (kpiDetail) kpiDetail.textContent = "Aucun abonnement actif — l'export nécessite un abonnement.";
+                if (kpiIconWrap) kpiIconWrap.className = 'w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-sm font-bold';
+            }
+        }
+        window.rafraichirStatutAbonnement = rafraichirStatutAbonnement;
 
         async function exporterEnCSV(assessmentId) {
             const abonneActif = await verifierAbonnementActif();
@@ -2832,6 +2866,7 @@
 
             await loadRealAuditLogs();
             await loadRealClassesAndSubjects();
+            await rafraichirStatutAbonnement();
         }
 
         window.handleRealLogin = async function (event) {
